@@ -1,4 +1,7 @@
-## wsn-mesh
-Wireless Sensor Network Project using mesh topology. In this project, using 3 main microcontroller. Which is ESP32 & ESP8266.
+## WSN-Mesh
 
-ESP32, will behave as a gateway nodes, and ESP8266 as a client nodes who sent the data.
+A Wireless Sensor Network project implementing a mesh topology. The network consists of multiple ESP8266 nodes and one ESP32 gateway.
+Each ESP8266 node can relay data to other nearby nodes, forming a self-healing, multi-hop communication network. The ESP32 acts as the central gateway that collects aggregated data from the mesh and forwards it to the server or cloud.
+
+# Block Diagram
+![Block Diagram](https://github.com/user-attachments/assets/fd91c8e6-276c-43ac-b121-ce851bbd76e6)

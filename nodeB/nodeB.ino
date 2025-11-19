@@ -1,8 +1,10 @@
+//nodeC program
 #include "painlessMesh.h"
 
-#define   MESH_PREFIX     "SSID0"         // sama dengan di gateway
-#define   MESH_PASSWORD   "nopassword"    // sama dengan di gateway
+#define   MESH_PREFIX     "SSID0"        
+#define   MESH_PASSWORD   "nopassword"
 #define   MESH_PORT       5555
+#define   GATEWAY_ID      0000000
 
 Scheduler     userScheduler;
 painlessMesh  mesh;
@@ -19,9 +21,21 @@ Task taskSendMessage(TASK_SECOND * 3, TASK_FOREVER, &sendMessage);
 
 // Fungsi kirim pesan broadcast
 void sendMessage() {
-  String msg = "NodeC: Air Sumur Bor";
-  mesh.sendBroadcast(msg);
-  Serial.println("Data Broadcasted");
+  String payload = String(random(15,32));
+  String packet;
+
+  bool gatewayAvailable = mesh.isConnected(GATEWAY_ID);
+
+  if (gatewayAvailable) {
+    packet = "U|" + String(mesh.getNodeId()) + "|" + payload;
+    mesh.sendSingle(GATEWAY_ID, packet);
+    Serial.println("Unicast → Gateway");
+  } else {
+    packet = "B|" + String(mesh.getNodeId()) + "|" + payload;
+    mesh.sendBroadcast(packet);
+    Serial.println("Broadcast (Gateway unreachable)");
+  }
+
   taskSendMessage.setInterval(5000);
 }
 
@@ -41,7 +55,16 @@ void receivedCallback(uint32_t from, String &msg) {
   for (auto &n : nodes) {
     if (n.realID == from) name = n.alias;
   }
-  Serial.printf("[%s] %s\n",name.c_str(),msg.c_str());
+  Serial.printf("[%s]: %s\n",name.c_str(),msg.c_str());
+
+  bool gwConnected = mesh.isConnected(GATEWAY_ID);
+
+  if (gwConnected){
+    mesh.sendSingle(GATEWAY_ID, msg);
+    Serial.println("[CLIENT] Data forwarded!");
+  } else {
+    Serial.println("Gateway unreachable...");
+  }
 }
 
 void newConnectionCallback(uint32_t nodeId) {

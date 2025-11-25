@@ -1,10 +1,15 @@
-//nodeC program
+//client&relay program
+
+#include <deque>
 #include "painlessMesh.h"
+
+std::deque<String> pendingQueue;
+unsigned long lastRetry = 0;
 
 #define   MESH_PREFIX     "SSID0"        
 #define   MESH_PASSWORD   "nopassword"
 #define   MESH_PORT       5555
-#define   GATEWAY_ID      0000000
+#define   GATEWAY_ID      1239714569
 
 Scheduler     userScheduler;
 painlessMesh  mesh;
@@ -36,7 +41,7 @@ void sendMessage() {
     Serial.println("Broadcast (Gateway unreachable)");
   }
 
-  taskSendMessage.setInterval(5000);
+  taskSendMessage.setInterval(2000);
 }
 
 struct NodeMap {
@@ -45,7 +50,7 @@ struct NodeMap {
 };
 
 NodeMap nodes[] = {
-  {0000000000, "Gateway"},
+  {1239714569, "Gateway"},
   {109870372, "nodeB"},
   {3657532460, "nodeC"}
 };
@@ -55,15 +60,16 @@ void receivedCallback(uint32_t from, String &msg) {
   for (auto &n : nodes) {
     if (n.realID == from) name = n.alias;
   }
-  Serial.printf("[%s]: %s\n",name.c_str(),msg.c_str());
+  Serial.printf("[%s]: %s\n", name.c_str(), msg.c_str());
 
   bool gwConnected = mesh.isConnected(GATEWAY_ID);
 
-  if (gwConnected){
-    mesh.sendSingle(GATEWAY_ID, msg);
-    Serial.println("[CLIENT] Data forwarded!");
+  if (gwConnected) {
+      mesh.sendSingle(GATEWAY_ID, msg);
+      Serial.println("[Forward] → Gateway");
   } else {
-    Serial.println("Gateway unreachable...");
+      pendingQueue.push_back(msg);
+      Serial.println("[Forward] Gateway unreachable, queued");
   }
 }
 
@@ -95,6 +101,8 @@ void setup() {
 
   // Inisialisasi mesh
   mesh.init(MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT);
+  mesh.setRoot(false);
+  mesh.setContainsRoot(true);
 
   // Pasang callback
   mesh.onReceive(&receivedCallback);
@@ -109,4 +117,15 @@ void setup() {
 
 void loop() {
   mesh.update();
+
+  bool gwConnected = mesh.isConnected(GATEWAY_ID);
+
+  if (gwConnected && !pendingQueue.empty()) {
+    if (millis() - lastRetry > 500) {
+      mesh.sendSingle(GATEWAY_ID, pendingQueue.front());
+      pendingQueue.pop_front();
+      lastRetry = millis();
+      Serial.println("[Retry] Flushed a queued message");
+    }
+  }
 }

@@ -1,5 +1,5 @@
 // =========================================================
-// ================= CLIENT / RELAY ESP8266 =================
+// ================= nodeB / RELAY ESP8266 =================
 // =========================================================
 #include "painlessMesh.h"
 
@@ -43,7 +43,7 @@ void sendMessage() {
   } else {
     // Broadcast ketika gateway unreachable (biar node lain bisa forward)
     packet = "B|" + String(mesh.getNodeId()) + "|" + payload;
-    mesh.sendBroadcast(packet);
+    mesh.sendSingle(3657532460,packet);
     Serial.printf("[TX] Broadcast (gateway unreachable): %s\n", packet.c_str());
   }
 }

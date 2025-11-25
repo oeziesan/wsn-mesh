@@ -106,9 +106,7 @@ void setup() {
     MESH_PREFIX,
     MESH_PASSWORD,
     &userScheduler,
-    MESH_PORT,
-    WIFI_AP_STA,
-    FIXED_CHANNEL
+    MESH_PORT
 );
 
   mesh.setRoot(false);
